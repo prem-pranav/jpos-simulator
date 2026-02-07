@@ -1,0 +1,4 @@
+<channel class="org.jpos.iso.channel.PostChannel" packager="org.jpos.iso.packager.GenericPackager">
+    <property name="packager-config" value="src/main/resources/xml/packager/iso93.xml" />
+    <property name="port" value="9005" />
+</channel>

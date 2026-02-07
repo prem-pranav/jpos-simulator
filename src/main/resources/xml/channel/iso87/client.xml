@@ -1,0 +1,5 @@
+<channel class="org.jpos.iso.channel.ASCIIChannel" packager="org.jpos.iso.packager.GenericPackager">
+    <property name="packager-config" value="src/main/resources/xml/packager/iso87.xml" />
+    <property name="host" value="localhost" />
+    <property name="port" value="8005" />
+</channel>

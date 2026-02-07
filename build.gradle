@@ -1,0 +1,59 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.jpos'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    maven {
+        url = "https://jpos.org/maven"
+    }
+}
+
+dependencies {
+    implementation 'org.jpos:jpos:2.1.4'
+    implementation 'commons-cli:commons-cli:1.4'
+    implementation 'org.jdom:jdom2:2.0.6.1'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+// Define specific run tasks for different simulator roles
+task runISO87Server(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.jpos.simulator.server.ISO87ServerApp'
+}
+
+task runISO87Client(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.jpos.simulator.client.ISO87ClientApp'
+    standardInput = System.in
+}
+
+task runISO93Server(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.jpos.simulator.server.ISO93ServerApp'
+}
+
+task runISO93Client(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.jpos.simulator.client.ISO93ClientApp'
+    standardInput = System.in
+}
