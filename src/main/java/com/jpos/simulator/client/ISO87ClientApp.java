@@ -27,6 +27,12 @@ public class ISO87ClientApp extends ISO87Messages {
             Logger logger = new Logger();
             logger.addListener(new SimpleLogListener(System.out));
 
+            java.io.File logDir = new java.io.File("log");
+            if (!logDir.exists())
+                logDir.mkdirs();
+            logger.addListener(new SimpleLogListener(
+                    new java.io.PrintStream(new java.io.FileOutputStream("log/ISO87CLIENT.log", true))));
+
             String configPath = "src/main/resources/xml/channel/iso87/client.xml";
             ISOChannel channel = ChannelFactory.createChannel(configPath);
 
@@ -105,8 +111,10 @@ public class ISO87ClientApp extends ISO87Messages {
     // Helper for transmission
     private static void transmit(ISOChannel channel, ISOMsg m, String name) throws ISOException, IOException {
         System.out.println("Sending " + name + " [" + m.getMTI() + "]...");
+
         channel.send(m);
         ISOMsg r = channel.receive();
+
         System.out.println("Received " + name + " response [" + r.getMTI() + "] (F39=" + r.getString(39) + ")");
     }
 

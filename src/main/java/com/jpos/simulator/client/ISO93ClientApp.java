@@ -7,15 +7,14 @@ import com.jpos.simulator.card.CardInfo;
 import com.jpos.simulator.card.CardDataLoader;
 import com.jpos.simulator.card.CardGenerator;
 
-import org.jpos.iso.ISODate;
 import org.jpos.iso.ISOException;
 import org.jpos.iso.ISOChannel;
 import org.jpos.iso.ISOMsg;
 import org.jpos.util.Logger;
 import org.jpos.util.SimpleLogListener;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.Date;
 import java.util.Scanner;
 
 import java.util.LinkedHashMap;
@@ -27,6 +26,12 @@ public class ISO93ClientApp extends ISO93Messages {
         try {
             Logger logger = new Logger();
             logger.addListener(new SimpleLogListener(System.out));
+
+            File logDir = new File("log");
+            if (!logDir.exists())
+                logDir.mkdirs();
+            logger.addListener(new SimpleLogListener(
+                    new java.io.PrintStream(new java.io.FileOutputStream("log/ISO93CLIENT.log", true))));
 
             String configPath = "src/main/resources/xml/channel/iso93/client.xml";
             ISOChannel channel = ChannelFactory.createChannel(configPath);
@@ -121,8 +126,10 @@ public class ISO93ClientApp extends ISO93Messages {
     // Helper for transmission
     private static void transmit(ISOChannel channel, ISOMsg m, String name) throws ISOException, IOException {
         System.out.println("Sending " + name + " [" + m.getMTI() + "]...");
+
         channel.send(m);
         ISOMsg r = channel.receive();
+
         System.out.println("Received " + name + " response [" + r.getMTI() + "] (F39=" + r.getString(39) + ")");
     }
 

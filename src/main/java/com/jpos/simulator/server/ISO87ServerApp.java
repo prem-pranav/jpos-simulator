@@ -12,7 +12,13 @@ import java.io.FileOutputStream;
 import java.io.File;
 
 public class ISO87ServerApp {
+    private static ISOServer server;
+
     public static void main(String[] args) {
+        startServer();
+    }
+
+    public static void startServer() {
         try {
             Logger logger = new Logger();
             logger.addListener(new SimpleLogListener(System.out));
@@ -38,15 +44,26 @@ public class ISO87ServerApp {
                 throw new Exception("Port not configured for ISO87 Server in " + configPath);
             }
 
-            ISOServer server = new ISOServer(port, channel, null);
+            server = new ISOServer(port, channel, null);
             server.setLogger(logger, "iso87-server");
+            server.setConfiguration(new org.jpos.core.SimpleConfiguration());
             server.addISORequestListener(new ISO87RequestListener());
 
             System.out.println("ISO87 Host Server started on port " + port + "...");
             new Thread(server).start();
 
+            // Give it a moment to bind
+            Thread.sleep(500);
+
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    public static void stopServer() {
+        if (server != null) {
+            System.out.println("Stopping ISO87 Host Server...");
+            server.shutdown();
         }
     }
 }
