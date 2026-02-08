@@ -1,126 +1,288 @@
-# JPOS Simulator - Usage Walkthrough
+# JPOS Simulator - Technical Walkthrough
 
-This guide provides step-by-step instructions for testing various payment scenarios using the JPOS ISO8583 Simulator. It covers basic connectivity, financial transactions, and card management.
-
-For detailed technical specifications, protocols, and field mappings, please refer to the **[README.md](README.md)**.
+This guide provides technical details on the simulator's architecture, including the recent logging refactor, automated testing lifecycle, and transaction flow diagrams.
 
 ---
 
-## Table of Contents
+## 🏗️ Technical Architecture & Refactoring
 
-- [Prerequisites](#prerequisites)
-- [Scenario 1: Basic Connectivity (Echo)](#scenario-1-basic-connectivity-echo)
-- [Scenario 2: Financial Transaction (Purchase)](#scenario-2-financial-transaction-purchase)
-- [Scenario 3: Card Management (Generate & Sync)](#scenario-3-card-management-generate--sync)
-- [Scenario 4: ISO 93 Binary Testing](#scenario-4-iso-93-binary-testing)
-- [Troubleshooting](#troubleshooting)
+I have refactored the logging mechanism in both **ISO87** and **ISO93** suites to align with jPOS's built-in logging capabilities. This ensures consistency between client and server logs.
+
+### Key Changes
+- **Built-in Logging**: The simulator uses the built-in jPOS logging ( `Logger` and `FileLogListener` ) framework for both Client and Server, ensuring structured XML logs for all transactions.
+- **File Persistence**: Logs are now automatically persisted to the `log/` directory:
+  - `ISO87CLIENT.log` / `ISO87HOST.log`
+  - `ISO93CLIENT.log` / `ISO93HOST.log`
+- **Automated Lifecycle**: Integration tests automatically manage the server lifecycle. The test suite checks for port availability and starts/stops the server as needed.
 
 ---
 
-## Prerequisites
+## 🔄 Transaction Flow: Network Management
 
-Ensure you have **Java 8+** installed.
+The following diagram illustrates the end-to-end communication flow for Network Management transactions (Echo, Logon, Logoff, Key Exchange) between the Client and Server.
 
-**Build the Project:**
-```bash
-./gradlew clean build
+```mermaid
+sequenceDiagram
+    participant C as Client Application
+    participant CH as ISOChannel (Client)
+    participant S as ISOServer (Host)
+    participant L as RequestListener (Server)
+
+    Note over C, L: Network Management Flow (MTI 0800 / 1804)
+
+    C->>C: buildRequest(MTI, STAN, Code)
+    C->>CH: send(request)
+    CH->>S: TCP Packet (Serialized ISO8583)
+    S->>L: process(source, request)
+    
+    ALT ISO 87 (ASCII)
+        L->>L: handleNetMgmt (Check DE70)
+    ELSE ISO 93 (Binary)
+        L->>L: handleNetMgmt (Check DE24)
+    END
+
+    L->>L: createResponse(MTI+10, DE39="00")
+    L->>S: source.send(response)
+    S->>CH: TCP Packet (Serialized Response)
+    CH->>C: receive()
+    C->>C: handleResponse(log & display)
 ```
 
----
+### Protocol Mapping (Net Mgmt)
 
-## Scenario 1: Basic Connectivity (Echo)
+| Protocol | Request MTI | Response MTI | Action Field | Field Reference |
+| :--- | :--- | :--- | :--- | :--- |
+| **ISO 87** | `0800` | `0810` | DE 70 | 301 (Echo), 001 (Logon), etc. |
+| **ISO 93** | `1804` | `1814` | DE 24 | 801 (Echo), 001 (Logon), etc. |
 
-**Goal**: Verify that the client can successfully connect to the server and exchange a network management message.
+## Transaction Flow: Financial Transactions
 
-### Steps
+Financial transactions handle authorization and funds movement (Purchase, Withdrawal, Refund, etc.). Unlike Network Management, these check the **Processing Code (DE 3)** and **Function Code (DE 24)** for routing.
 
-1.  **Start the Server** (Terminal 1):
-    ```bash
-    ./gradlew runISO87Server
-    ```
+```mermaid
+sequenceDiagram
+    participant C as Client Application
+    participant CH as ISOChannel (Client)
+    participant S as ISOServer (Host)
+    participant L as RequestListener (Server)
 
-2.  **Start the Client** (Terminal 2):
-    ```bash
-    ./gradlew runISO87Client
-    ```
+    Note over C, L: Financial Flow (MTI 0100/0200 or 1100)
 
-3.  **Execute Echo**:
-    - In the client menu, select **"Send Echo Request (0800/301)"**.
+    C->>C: buildFinancialRequest(MTI, Card, DE3, [DE24])
+    C->>CH: send(request)
+    CH->>S: Serialized ISO8583 Packet
+    S->>L: process(source, request)
+    
+    ALT ISO 87 (ASCII)
+        L->>L: handleFinancial (Check DE3)
+    ELSE ISO 93 (Binary)
+        L->>L: handleFinancial (Check DE3 & DE24)
+    END
 
-### ✅ Verification
-- **Client Console**:
-    > `Sending Echo [0800]...`
-    > `Received Echo response [0810] (F39=00)`
-- **Server Console**:
-    > `ISO87 Received MTI: 0800`
-    > `Processing Echo...`
+    OPT Balance Inquiry
+        L->>L: Populate DE 54 (Amounts)
+    END
 
----
+    L->>L: createResponse(MTI+10, DE39="00")
+    L->>S: source.send(response)
+    S->>CH: TCP Packet
+    CH->>C: receive()
+    C->>C: Validate Response & Display
+```
 
-## Scenario 2: Financial Transaction (Purchase)
+### Protocol Mapping (Financial)
 
-**Goal**: Perform a standard financial transaction using a simulated card.
-
-### Steps
-
-1.  **Ensure Server is Running** (from Scenario 1).
-
-2.  **Send Purchase**:
-    - In the client menu, select **"Send Purchase (0200)"**.
-
-### ✅ Verification
-- **Client**: Sends a `0200` message with a valid PAN (automatically selected from `cards.csv`).
-- **Server**: Responds with `0210` and Release Code `00` (Approved).
-
----
-
-## Scenario 3: Card Management (Generate & Sync)
-
-**Goal**: Create a new test card dynamically and sync it with the server.
-
-### Steps
-
-1.  **Select Option**:
-    - In the client menu, choose **"Generate & Sync New Card (0300)"**.
-
-2.  **Observe Process**:
-    - The client generates a new card with a valid Luhn PAN.
-    - It sends a `0300` (File Action) message to the server (Function Code: Add).
-    - It appends the new card to the local storage.
-
-### ✅ Verification
-- **Persistence**: Open `src/main/resources/data/cards.csv`. The last line should contain the newly generated PAN.
+| Transaction | Protocol | Request MTI | Proc Code (DE 3) | Func Code (DE 24) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Purchase** | ISO 87 | `0200` | `000000` | N/A |
+| **Purchase** | ISO 93 | `1100` | `000000` | `100` |
+| **Withdrawal**| ISO 87 | `0200` | `010000` | N/A |
+| **Withdrawal**| ISO 93 | `1100` | `010000` | `100` |
+| **Balance Inquiry** | ISO 87 | `0200` | `310000` | N/A |
+| **Balance Inquiry** | ISO 93 | `1100` | `310000` | `100` |
+| **Pre-Auth** | ISO 87 | `0100` | `000000` | N/A |
+| **Pre-Auth** | ISO 93 | `1100` | `000000` | `104` |
 
 ---
 
-## Scenario 4: ISO 93 Binary Testing
+## Transaction Flow: Reversal Messages
 
-**Goal**: Switch protocols to test binary message handling.
+Reversals are sent to undo a previous transaction that timed out or failed partially. They rely on **Original Data Elements (DE 90)** to link to the original transaction.
 
-### Steps
+```mermaid
+sequenceDiagram
+    participant C as Client Application
+    participant CH as ISOChannel (Client)
+    participant S as ISOServer (Host)
+    participant L as RequestListener (Server)
 
-1.  **Start ISO 93 Server**:
-    ```bash
-    ./gradlew runISO93Server
-    ```
+    Note over C, L: Reversal Flow (MTI 0420 or 1420)
 
-2.  **Start ISO 93 Client**:
-    ```bash
-    ./gradlew runISO93Client
-    ```
+    C->>C: buildReversal(OriginalMsg)
+    Note right of C: Populates DE 90 from Original
+    C->>CH: send(reversal)
+    CH->>S: TCP Packet
+    S->>L: process(source, reversal)
+    
+    L->>L: handleReversal (Extract DE 90)
+    L->>L: createResponse(MTI+10, DE39="00")
+    
+    L->>S: source.send(response)
+    S->>CH: TCP Packet
+    CH->>C: receive()
+    C->>C: Validate Reversal Response
+```
 
-3.  **Execute Balance Inquiry**:
-    - Select **"Send Balance Inquiry (1100/31)"**.
+### Protocol Mapping (Reversal)
 
-### ✅ Verification
-- **Response**: The client should receive a response containing **Field 54** (Additional Amounts) with a mock balance (e.g., `123.45`).
+| Protocol | Request MTI | Response MTI | Key Field | Contents |
+| :--- | :--- | :--- | :--- | :--- |
+| **ISO 87** | `0420` | `0430` | DE 90 | MTI, STAN, Date, Acq ID, Forward ID |
+| **ISO 93** | `1420` | `1430` | DE 90 | MTI, STAN, Date, Acq ID, Forward ID |
 
 ---
 
-## Troubleshooting
+---
 
-| Issue | Solution |
-| :--- | :--- |
-| **Connection Refused** | Ensure the **Server** is running *before* starting the **Client**. |
-| **Card Not Found** | If transactions fail, run **"Generate & Sync New Card"** first to ensure valid data exists. |
-| **Logs** | Check `log/ISO87HOST.log` or `log/ISO93HOST.log` for full ISO message dumps. |
+## 🧪 Verification & Logging Examples (Client)
+
+The following carousel displays real-world jPOS XML logs captured during transaction execution. Use these examples to verify your implementation.
+
+````carousel
+### 1. Network Management (Echo)
+**Request (0800)**
+```xml
+<log realm="iso87-client-channel" at="2026-02-08T11:28:29.892543400">
+  <send>
+    <isomsg direction="outgoing">
+      <!-- org.jpos.iso.packager.GenericPackager -->
+      <field id="0" value="0800"/>
+      <field id="7" value="0208112829"/>
+      <field id="11" value="013204"/>
+      <field id="70" value="301"/>
+    </isomsg>
+  </send>
+</log>
+```
+**Response (0810)**
+```xml
+<log realm="iso87-client-channel" at="2026-02-08T11:28:29.893108400">
+  <receive>
+    <isomsg direction="incoming">
+      <!-- org.jpos.iso.packager.GenericPackager -->
+      <field id="0" value="0810"/>
+      <field id="7" value="0208112829"/>
+      <field id="11" value="013204"/>
+      <field id="39" value="00"/>
+      <field id="70" value="301"/>
+    </isomsg>
+  </receive>
+</log>
+```
+<!-- slide -->
+### 2. Financial (Purchase)
+**Request (0200)**
+```xml
+<log realm="iso87-client-channel" at="2026-02-08T11:28:29.862661100">
+  <send>
+    <isomsg direction="outgoing">
+      <!-- org.jpos.iso.packager.GenericPackager -->
+      <field id="0" value="0200"/>
+      <field id="2" value="4532111084873030"/>
+      <field id="3" value="000000"/>
+      <field id="4" value="000000001000"/>
+      <field id="7" value="0208112829"/>
+      <field id="11" value="119936"/>
+      <field id="12" value="112829"/>
+      <field id="13" value="0208"/>
+      <field id="14" value="2612"/>
+      <field id="18" value="5999"/>
+      <field id="22" value="021"/>
+      <field id="25" value="00"/>
+      <field id="32" value="123456"/>
+      <field id="37" value="039111199361"/>
+      <field id="41" value="TERM0001"/>
+      <field id="42" value="MERCHANT0000001"/>
+      <field id="49" value="840"/>
+    </isomsg>
+  </send>
+</log>
+```
+**Response (0210)**
+```xml
+<log realm="iso87-client-channel" at="2026-02-08T11:28:29.864176900">
+  <receive>
+    <isomsg direction="incoming">
+      <!-- org.jpos.iso.packager.GenericPackager -->
+      <field id="0" value="0210"/>
+      <field id="7" value="0208112829"/>
+      <field id="11" value="119936"/>
+      <field id="37" value="039111199361"/>
+      <field id="38" value="847588"/>
+      <field id="39" value="00"/>
+      <field id="41" value="TERM0001"/>
+      <field id="42" value="MERCHANT0000001"/>
+      <field id="49" value="840"/>
+    </isomsg>
+  </receive>
+</log>
+```
+<!-- slide -->
+### 3. Reversal (Purchase Reversal)
+**Request (0420)**
+```xml
+<log realm="iso87-client-channel" at="2026-02-08T11:28:29.877976600">
+  <send>
+    <isomsg direction="outgoing">
+      <!-- org.jpos.iso.packager.GenericPackager -->
+      <field id="0" value="0420"/>
+      <field id="2" value="4532111084873030"/>
+      <field id="3" value="000000"/>
+      <field id="4" value="000000001000"/>
+      <field id="7" value="0208112829"/>
+      <field id="11" value="252037"/>
+      <field id="37" value="039115224151"/>
+      <field id="41" value="TERM0001"/>
+      <field id="90" value="020052241502081128291234560000000000000000"/>
+    </isomsg>
+  </send>
+</log>
+```
+**Response (0430)**
+```xml
+<log realm="iso87-client-channel" at="2026-02-08T11:28:29.878983700">
+  <receive>
+    <isomsg direction="incoming">
+      <!-- org.jpos.iso.packager.GenericPackager -->
+      <field id="0" value="0430"/>
+      <field id="7" value="0208112829"/>
+      <field id="11" value="252037"/>
+      <field id="37" value="039115224151"/>
+      <field id="39" value="00"/>
+      <field id="41" value="TERM0001"/>
+    </isomsg>
+  </receive>
+</log>
+```
+````
+
+### Log File Persistence
+- Client logs are persisted to `log/ISO87CLIENT.log` and `log/ISO93CLIENT.log`.
+- Logs are successfully persisted to `log/ISO87HOST.log` and `log/ISO93HOST.log` as well, capturing the server-side processing.
+
+---
+
+## 🚀 Scenario-Based Testing
+
+### Scenario 1: Basic Connectivity (Echo)
+**Run**: `./gradlew runISO87Server` and `./gradlew runISO87Client`.
+**Action**: Select "Send Echo Request".
+**Verify**: Check logs for MTI `0810` with response code `00`.
+
+### Scenario 2: Automated Integration Testing
+**Run**: `./gradlew test --tests "com.jpos.simulator.ISO87ClientTest"`
+**Verify**: The suite automatically starts the server if down, executes all financial/net-mgmt flows, and validates responses programmatically.
+
+---
+
+For detailed field specifications and build instructions, see the **[README.md](README.md)**.

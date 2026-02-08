@@ -90,5 +90,5 @@ jpos-simulator/
 ├── log/                        # Persistent Transaction Logs
 ├── build.gradle                # Build Configuration
 ├── README.md                   # This file
-└── walkthrough.md              # Scenario-based Usage Guide
+├── walkthrough.md              # Scenario-based Usage Guide & Flow Diagrams
 ```
