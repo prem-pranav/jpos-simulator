@@ -24,27 +24,18 @@ The following diagram illustrates the end-to-end communication flow for Network 
 ```mermaid
 sequenceDiagram
     participant C as Client Application
-    participant CH as ISOChannel (Client)
     participant S as ISOServer (Host)
-    participant L as RequestListener (Server)
 
-    Note over C, L: Network Management Flow (MTI 0800 / 1804)
+    Note over C, S: Network Management Flow (MTI 0800 / 1804)
 
     C->>C: buildRequest(MTI, STAN, Code)
-    C->>CH: send(request)
-    CH->>S: TCP Packet (Serialized ISO8583)
-    S->>L: process(source, request)
+    C->>S: Send ISO8583 Message
     
-    ALT ISO 87 (ASCII)
-        L->>L: handleNetMgmt (Check DE70)
-    ELSE ISO 93 (Binary)
-        L->>L: handleNetMgmt (Check DE24)
-    END
+    Note right of S: process(source, request)
+    Note right of S: ALT ISO 87 (DE70) / ISO 93 (DE24)
 
-    L->>L: createResponse(MTI+10, DE39="00")
-    L->>S: source.send(response)
-    S->>CH: TCP Packet (Serialized Response)
-    CH->>C: receive()
+    S->>S: createResponse(MTI+10, DE39="00")
+    S->>C: Send ISO8583 Response
     C->>C: handleResponse(log & display)
 ```
 
@@ -62,31 +53,17 @@ Financial transactions handle authorization and funds movement (Purchase, Withdr
 ```mermaid
 sequenceDiagram
     participant C as Client Application
-    participant CH as ISOChannel (Client)
     participant S as ISOServer (Host)
-    participant L as RequestListener (Server)
 
-    Note over C, L: Financial Flow (MTI 0100/0200 or 1100)
+    Note over C, S: Financial Flow (MTI 0100/0200 or 1100)
 
     C->>C: buildFinancialRequest(MTI, Card, DE3, [DE24])
-    C->>CH: send(request)
-    CH->>S: Serialized ISO8583 Packet
-    S->>L: process(source, request)
+    C->>S: Send ISO8583 Message
     
-    ALT ISO 87 (ASCII)
-        L->>L: handleFinancial (Check DE3)
-    ELSE ISO 93 (Binary)
-        L->>L: handleFinancial (Check DE3 & DE24)
-    END
+    Note right of S: handleFinancial(DE3, [DE24])
 
-    OPT Balance Inquiry
-        L->>L: Populate DE 54 (Amounts)
-    END
-
-    L->>L: createResponse(MTI+10, DE39="00")
-    L->>S: source.send(response)
-    S->>CH: TCP Packet
-    CH->>C: receive()
+    S->>S: createResponse(MTI+10, DE39="00")
+    S->>C: Send ISO8583 Response
     C->>C: Validate Response & Display
 ```
 
@@ -98,10 +75,6 @@ sequenceDiagram
 | **Purchase** | ISO 93 | `1100` | `000000` | `100` |
 | **Withdrawal**| ISO 87 | `0200` | `010000` | N/A |
 | **Withdrawal**| ISO 93 | `1100` | `010000` | `100` |
-| **Balance Inquiry** | ISO 87 | `0200` | `310000` | N/A |
-| **Balance Inquiry** | ISO 93 | `1100` | `310000` | `100` |
-| **Pre-Auth** | ISO 87 | `0100` | `000000` | N/A |
-| **Pre-Auth** | ISO 93 | `1100` | `000000` | `104` |
 
 ---
 
@@ -112,25 +85,24 @@ Reversals are sent to undo a previous transaction that timed out or failed parti
 ```mermaid
 sequenceDiagram
     participant C as Client Application
-    participant CH as ISOChannel (Client)
     participant S as ISOServer (Host)
-    participant L as RequestListener (Server)
 
-    Note over C, L: Reversal Flow (MTI 0420 or 1420)
+    Note over C, S: Phase 1: Original Financial Request
+
+    C->>S: Financial Request (0200 / 1100)
+    S-->>C: [Network Timeout or Connection Failure]
+    Note right of C: No valid response received
+
+    Note over C, S: Phase 2: Automatic Reversal (Undo)
 
     C->>C: buildReversal(OriginalMsg)
     Note right of C: Populates DE 90 from Original
-    C->>CH: send(reversal)
-    CH->>S: TCP Packet
-    S->>L: process(source, reversal)
+    C->>S: Reversal Advice (0420 / 1420)
     
-    L->>L: handleReversal (Extract DE 90)
-    L->>L: createResponse(MTI+10, DE39="00")
+    Note left of S: Process DE 90 & Reverse Transaction
+    S->>C: Reversal Response (0430 / 1430)
     
-    L->>S: source.send(response)
-    S->>CH: TCP Packet
-    CH->>C: receive()
-    C->>C: Validate Reversal Response
+    C->>C: handleResponse(log & display)
 ```
 
 ### Protocol Mapping (Reversal)
