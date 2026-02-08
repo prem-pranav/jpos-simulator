@@ -78,6 +78,106 @@ sequenceDiagram
 
 ---
 
+## 🔒 Transaction Flow: Card & PIN Verification
+
+For financial interactions, the server performs security checks before authorizing the transaction. This includes **CVV Verification** and **PIN Verification**.
+
+```mermaid
+sequenceDiagram
+    participant C as Client Application
+    participant S as ISOServer (Host)
+    participant H as HSM Simulator
+
+    Note over C, S: Incoming Financial Request (0200)
+    C->>S: Send Request (0200)
+    
+    rect rgb(240, 248, 255)
+        Note right of S: 1. CVV Verification
+        S->>H: verifyCVV(PAN, Expiry, CVV)
+        alt Invalid CVV
+            H-->>S: false
+            S->>S: Response Code = "N7" (CVV Failure)
+            S-->>C: Send Response (0210)
+        else Valid CVV
+            H-->>S: true
+        end
+    end
+
+    rect rgb(255, 240, 245)
+        Note right of S: 2. PIN Verification
+        S->>H: verifyPVV(PIN Block, PAN, PVV)
+        alt Invalid PIN
+            H-->>S: false
+            S->>S: Response Code = "55" (Incorrect PIN)
+            S-->>C: Send Response (0210)
+        else Valid PIN
+            H-->>S: true
+            S->>S: Response Code = "00" (Approved)
+            S-->>C: Send Response (0210)
+        end
+    end
+```
+
+### Verification Logic
+
+1.  **CVV Check (Card Verification)**:
+    - Extracts `CVV` from **Field 48**.
+    - validates it against the PAN and Expiry using the HSM.
+    - **Failure**: Returns Response Code `N7`.
+
+2.  **PIN Check**:
+    - Requires **Field 52** (PIN Block) and **Field 44** (PVV).
+    - The HSM validates the Encrypted PIN Block against the PVV.
+    - **Failure**: Returns Response Code `55`.
+
+---
+
+## 💳 Transaction Flow: Generate & Sync New Card
+
+This flow demonstrates the client's ability to generate a new card number, perform local validation, and synchronize it with the host.
+
+```mermaid
+sequenceDiagram
+    participant C as Client Application
+    participant S as ISOServer (Host)
+    participant D as Data Store (CSV)
+
+    Note over C: Generate & Sync New Card (0300)
+
+    C->>C: CardGenerator.generateCard()
+    Note right of C: Generates PAN, CVV, PIN, PVV
+    
+    C->>D: CardDataLoader.appendCard(card)
+    Note right of C: Persists card locally
+
+    C->>C: createSyncCardMsg(card)
+    
+    C->>S: File Action Request (0300)
+    Note right of C: F91=1 (Add), F48=Card Details
+    
+    S->>S: Process Card Sync
+    S-->>C: File Action Response (0310)
+    Note right of S: F39=00 (Success)
+
+    C->>C: Log Success
+```
+
+### Process Steps
+
+1.  **Card Generation**:
+    - The client generates a valid **PAN** (with Luhn check), **CVV**, and **PIN/PVV** using `CardGenerator`.
+    - Default Prefix: `453211` (VISA).
+
+2.  **Local Persistence**:
+    - The new card is immediately saved to `cards.csv` so it can be used for subsequent transactions.
+
+3.  **Host Synchronization**:
+    - An **File Action Message (0300)** is sent to the host.
+    - **Field 91**: `1` (File Update / Add).
+    - **Field 48**: Contains encoded card details (Scheme, Limits, BIN).
+
+---
+
 ## Transaction Flow: Reversal Messages
 
 Reversals are sent to undo a previous transaction that timed out or failed partially. They rely on **Original Data Elements (DE 90)** to link to the original transaction.
