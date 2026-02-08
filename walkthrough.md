@@ -224,13 +224,13 @@ The following carousel displays real-world jPOS XML logs captured during transac
 ### 1. Network Management (Echo)
 **Request (0800)**
 ```xml
-<log realm="iso87-client-channel" at="2026-02-08T11:28:29.892543400">
+<log realm="iso87-client-channel" at="2026-02-08T22:56:08.277035300">
   <send>
     <isomsg direction="outgoing">
       <!-- org.jpos.iso.packager.GenericPackager -->
       <field id="0" value="0800"/>
-      <field id="7" value="0208112829"/>
-      <field id="11" value="013204"/>
+      <field id="7" value="0208225608"/>
+      <field id="11" value="004793"/>
       <field id="70" value="301"/>
     </isomsg>
   </send>
@@ -238,13 +238,13 @@ The following carousel displays real-world jPOS XML logs captured during transac
 ```
 **Response (0810)**
 ```xml
-<log realm="iso87-client-channel" at="2026-02-08T11:28:29.893108400">
+<log realm="iso87-client-channel" at="2026-02-08T22:56:08.278035900">
   <receive>
     <isomsg direction="incoming">
       <!-- org.jpos.iso.packager.GenericPackager -->
       <field id="0" value="0810"/>
-      <field id="7" value="0208112829"/>
-      <field id="11" value="013204"/>
+      <field id="7" value="0208225608"/>
+      <field id="11" value="004793"/>
       <field id="39" value="00"/>
       <field id="70" value="301"/>
     </isomsg>
@@ -255,42 +255,45 @@ The following carousel displays real-world jPOS XML logs captured during transac
 ### 2. Financial (Purchase)
 **Request (0200)**
 ```xml
-<log realm="iso87-client-channel" at="2026-02-08T11:28:29.862661100">
+<log realm="iso87-client-channel" at="2026-02-08T22:56:46.931879800">
   <send>
     <isomsg direction="outgoing">
       <!-- org.jpos.iso.packager.GenericPackager -->
       <field id="0" value="0200"/>
-      <field id="2" value="4532111084873030"/>
+      <field id="2" value="5412340358517705"/>
       <field id="3" value="000000"/>
       <field id="4" value="000000001000"/>
-      <field id="7" value="0208112829"/>
-      <field id="11" value="119936"/>
-      <field id="12" value="112829"/>
+      <field id="7" value="0208225646"/>
+      <field id="11" value="134932"/>
+      <field id="12" value="225646"/>
       <field id="13" value="0208"/>
-      <field id="14" value="2612"/>
+      <field id="14" value="2912"/>
       <field id="18" value="5999"/>
       <field id="22" value="021"/>
       <field id="25" value="00"/>
       <field id="32" value="123456"/>
-      <field id="37" value="039111199361"/>
+      <field id="37" value="039221349321"/>
       <field id="41" value="TERM0001"/>
       <field id="42" value="MERCHANT0000001"/>
+      <field id="44" value="8422"/>
+      <field id="48" value="CVV=998"/>
       <field id="49" value="840"/>
+      <field id="52" value="049244BFCA7AE88F" type="binary"/>
     </isomsg>
   </send>
 </log>
 ```
 **Response (0210)**
 ```xml
-<log realm="iso87-client-channel" at="2026-02-08T11:28:29.864176900">
+<log realm="iso87-client-channel" at="2026-02-08T22:56:46.934886800">
   <receive>
     <isomsg direction="incoming">
       <!-- org.jpos.iso.packager.GenericPackager -->
       <field id="0" value="0210"/>
-      <field id="7" value="0208112829"/>
-      <field id="11" value="119936"/>
-      <field id="37" value="039111199361"/>
-      <field id="38" value="847588"/>
+      <field id="7" value="0208225646"/>
+      <field id="11" value="134932"/>
+      <field id="37" value="039221349321"/>
+      <field id="38" value="611753"/>
       <field id="39" value="00"/>
       <field id="41" value="TERM0001"/>
       <field id="42" value="MERCHANT0000001"/>
@@ -303,33 +306,31 @@ The following carousel displays real-world jPOS XML logs captured during transac
 ### 3. Reversal (Purchase Reversal)
 **Request (0420)**
 ```xml
-<log realm="iso87-client-channel" at="2026-02-08T11:28:29.877976600">
+<log realm="iso87-client-channel" at="2026-02-08T22:56:46.935886500">
   <send>
     <isomsg direction="outgoing">
       <!-- org.jpos.iso.packager.GenericPackager -->
       <field id="0" value="0420"/>
-      <field id="2" value="4532111084873030"/>
       <field id="3" value="000000"/>
-      <field id="4" value="000000001000"/>
-      <field id="7" value="0208112829"/>
-      <field id="11" value="252037"/>
-      <field id="37" value="039115224151"/>
+      <field id="7" value="0208225646"/>
+      <field id="11" value="466357"/>
+      <field id="37" value="039221349321"/>
       <field id="41" value="TERM0001"/>
-      <field id="90" value="020052241502081128291234560000000000000000"/>
+      <field id="90" value="021013493202082256460000000000000000000000"/>
     </isomsg>
   </send>
 </log>
 ```
 **Response (0430)**
 ```xml
-<log realm="iso87-client-channel" at="2026-02-08T11:28:29.878983700">
+<log realm="iso87-client-channel" at="2026-02-08T22:56:46.936886100">
   <receive>
     <isomsg direction="incoming">
       <!-- org.jpos.iso.packager.GenericPackager -->
       <field id="0" value="0430"/>
-      <field id="7" value="0208112829"/>
-      <field id="11" value="252037"/>
-      <field id="37" value="039115224151"/>
+      <field id="7" value="0208225646"/>
+      <field id="11" value="466357"/>
+      <field id="37" value="039221349321"/>
       <field id="39" value="00"/>
       <field id="41" value="TERM0001"/>
     </isomsg>
