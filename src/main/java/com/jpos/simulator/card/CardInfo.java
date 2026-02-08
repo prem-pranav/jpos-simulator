@@ -14,6 +14,7 @@ public class CardInfo {
     private String prefix;
     private int panLength;
     private boolean selected;
+    private String cvd;
 
     public CardInfo(String[] fields) {
         if (fields.length >= 12) {
@@ -23,14 +24,29 @@ public class CardInfo {
             this.expiry = fields[3];
             this.pin = fields[4];
             this.pvv = fields[5];
-            this.status = fields[6];
-            this.product = fields[7];
-            this.scheme = fields[8];
-            this.perTxLimit = fields[9];
-            this.dailyLimit = fields[10];
-            this.sourceId = fields[11];
-            this.selected = fields.length >= 13 && "Y".equalsIgnoreCase(fields[12]);
+            this.cvd = fields.length >= 7 ? fields[6] : "000";
+            this.status = fields.length >= 8 ? fields[7] : "ACTIVE";
+            this.product = fields.length >= 9 ? fields[8] : "STANDARD";
+            this.scheme = fields.length >= 10 ? fields[9] : "VISA";
+            this.perTxLimit = fields.length >= 11 ? fields[10] : "0.00";
+            this.dailyLimit = fields.length >= 12 ? fields[11] : "0.00";
+            this.sourceId = fields.length >= 13 ? fields[12] : "GEN_SRC";
+            this.selected = fields.length >= 14 && "Y".equalsIgnoreCase(fields[13]);
         }
+    }
+
+    // ... (existing getters)
+
+    public void setPvv(String pvv) {
+        this.pvv = pvv;
+    }
+
+    public String getCvd() {
+        return cvd;
+    }
+
+    public void setCvd(String cvd) {
+        this.cvd = cvd;
     }
 
     public String getPan() {

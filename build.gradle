@@ -24,6 +24,13 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+        showExceptions true
+        exceptionFormat "full"
+        showStackTraces true
+        showStandardStreams true
+    }
 }
 
 java {
@@ -56,4 +63,9 @@ task runISO93Client(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.jpos.simulator.client.ISO93ClientApp'
     standardInput = System.in
+}
+
+task runHsmSim(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.jpos.simulator.security.HsmSimulatorApp'
 }

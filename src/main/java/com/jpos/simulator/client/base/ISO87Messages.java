@@ -22,7 +22,8 @@ public class ISO87Messages {
         return m;
     }
 
-    protected static ISOMsg createFinancialBase(String mti, String procCode, String pan) throws ISOException {
+    protected static ISOMsg createFinancialBase(String mti, String procCode, String pan, String expiry)
+            throws ISOException {
         ISOMsg m = createBase(mti);
         Date now = new Date();
         String stan = m.getString(11);
@@ -32,7 +33,7 @@ public class ISO87Messages {
         m.set(4, "000000001000"); // 10.00
         m.set(12, ISODate.getTime(now));
         m.set(13, ISODate.getDate(now));
-        m.set(14, "2612"); // YYMM
+        m.set(14, expiry != null ? expiry : "2912"); // YYMM
         m.set(18, "5999");
         m.set(22, "021");
         m.set(25, "00");

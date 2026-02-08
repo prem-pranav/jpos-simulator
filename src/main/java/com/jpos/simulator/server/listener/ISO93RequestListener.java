@@ -7,9 +7,13 @@ import org.jpos.iso.ISOSource;
 
 import com.jpos.simulator.server.base.ISO93ResponseMessages;
 
+import com.jpos.simulator.security.HsmSimulator;
+
 import java.io.IOException;
 
 public class ISO93RequestListener extends ISO93ResponseMessages implements ISORequestListener {
+
+    private static HsmSimulator hsm = new HsmSimulator();
 
     @Override
     public boolean process(ISOSource source, ISOMsg m) {
@@ -75,6 +79,26 @@ public class ISO93RequestListener extends ISO93ResponseMessages implements ISORe
 
         System.out.println("ISO93: Processing " + type + " (F3=" + procCode + ", F24=" + funcCode + ") STAN="
                 + m.getString(11) + " TID=" + m.getString(41) + " MID=" + m.getString(42) + "...");
+
+        // CVV Validation
+        String pan = m.getString(2);
+        String f48 = m.getString(48);
+        String expiry = m.getString(14); // YYMM
+
+        if (f48 != null && f48.contains("CVV=")) {
+            String cvv = f48.substring(f48.indexOf("CVV=") + 4).split("\\|")[0];
+            try {
+                boolean cvvValid = hsm.verifyCVV(pan, null, null, "101", expiry, cvv);
+                if (!cvvValid) {
+                    System.out.println("ISO93: CVV Validation FAILED for PAN=" + pan);
+                    source.send(createFinancialResponse(m, "N7")); // CVV Failure
+                    return;
+                }
+                System.out.println("ISO93: CVV Validation SUCCESS for PAN=" + pan);
+            } catch (Exception e) {
+                System.err.println("ISO93: Error during CVV validation: " + e.getMessage());
+            }
+        }
 
         ISOMsg response = createFinancialResponse(m, "00");
         if ("310000".equals(procCode)) {

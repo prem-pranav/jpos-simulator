@@ -257,4 +257,10 @@ The following carousel displays real-world jPOS XML logs captured during transac
 
 ---
 
+### Scenario 3: HSM PIN Generation
+**Run**: `./gradlew runHsmSim`
+**Verify**: The simulator generates a random 4-digit PIN for a given account number and displays the encrypted PIN block.
+
+---
+
 For detailed field specifications and build instructions, see the **[README.md](README.md)**.

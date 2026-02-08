@@ -43,26 +43,8 @@ public class ISO93ClientTest {
                 ((BaseChannel) channel).connect();
             }
         } catch (IOException e) {
-            String errorMsg = "\n\n" +
-                    "═══════════════════════════════════════════════════════════════\n" +
-                    "  INTEGRATION TEST FAILURE: ISO93 Server Not Running\n" +
-                    "═══════════════════════════════════════════════════════════════\n" +
-                    "\n" +
-                    "These are integration tests that require a running server.\n" +
-                    "\n" +
-                    "TO FIX:\n" +
-                    "  1. Start the server in a separate terminal:\n" +
-                    "     ./gradlew runISO93Server\n" +
-                    "\n" +
-                    "  2. Then run the tests:\n" +
-                    "     ./gradlew test --tests \"com.jpos.simulator.ISO93ClientTest\"\n" +
-                    "\n" +
-                    "ALTERNATIVE:\n" +
-                    "  Skip integration tests during build:\n" +
-                    "     ./gradlew build -x test\n" +
-                    "\n" +
-                    "Server should be listening on port 8006\n" +
-                    "═══════════════════════════════════════════════════════════════\n";
+            String errorMsg = "INTEGRATION TEST FAILURE: ISO93 Server not running on port 8006. " +
+                    "Start it with './gradlew runISO93Server' for integration tests.";
             throw new RuntimeException(errorMsg, e);
         }
     }
@@ -87,164 +69,186 @@ public class ISO93ClientTest {
 
     // Integration tests - require running server
     @Test
-    public void testSendEcho() throws Exception {
-        System.out.println("\n[INTEGRATION TEST] testSendEcho (ISO93) - Sending echo to server...");
-
-        ISOMsg request = ISO93ClientApp.createEchoMsg();
-        channel.send(request);
-        ISOMsg response = channel.receive();
-        assertNotNull(response);
-
-        System.out.println("  ✓ Echo transaction completed successfully\n");
+    void testSendEcho() {
+        try {
+            System.out.println("\n[INTEGRATION TEST] testSendEcho (ISO93) - Sending echo to server...");
+            ISOMsg response = ISO93ClientApp.sendEcho(channel);
+            assertNotNull(response);
+            assertEquals("00", response.getString(39));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Exception: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testSendLogon() throws Exception {
-        System.out.println("\n[INTEGRATION TEST] testSendLogon (ISO93) - Sending logon to server...");
-
-        ISOMsg request = ISO93ClientApp.createLogonMsg();
-        channel.send(request);
-        ISOMsg response = channel.receive();
-        assertNotNull(response);
-
-        System.out.println("  ✓ Logon transaction completed successfully\n");
+    void testSendLogon() {
+        try {
+            System.out.println("\n[INTEGRATION TEST] testSendLogon (ISO93) - Sending logon to server...");
+            ISOMsg response = ISO93ClientApp.sendLogon(channel);
+            assertNotNull(response);
+            assertEquals("00", response.getString(39));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Exception: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testSendLogoff() throws Exception {
-        System.out.println("\n[INTEGRATION TEST] testSendLogoff (ISO93) - Sending logoff to server...");
-
-        ISOMsg request = ISO93ClientApp.createLogoffMsg();
-        channel.send(request);
-        ISOMsg response = channel.receive();
-        assertNotNull(response);
-
-        System.out.println("  ✓ Logoff transaction completed successfully\n");
+    void testSendLogoff() {
+        try {
+            System.out.println("\n[INTEGRATION TEST] testSendLogoff (ISO93) - Sending logoff to server...");
+            ISOMsg response = ISO93ClientApp.sendLogoff(channel);
+            assertNotNull(response);
+            assertEquals("00", response.getString(39));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Exception: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testSendKeyExchange() throws Exception {
-        System.out.println("\n[INTEGRATION TEST] testSendKeyExchange (ISO93) - Sending key exchange...");
-
-        ISOMsg request = ISO93ClientApp.createKeyExchangeMsg();
-        channel.send(request);
-        ISOMsg response = channel.receive();
-        assertNotNull(response);
-
-        System.out.println("  ✓ Key Exchange transaction completed successfully\n");
+    void testSendKeyExchange() {
+        try {
+            System.out.println("\n[INTEGRATION TEST] testSendKeyExchange (ISO93) - Sending key exchange...");
+            ISOMsg response = ISO93ClientApp.sendKeyExchange(channel);
+            assertNotNull(response);
+            assertEquals("00", response.getString(39));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Exception: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testSendPurchase() throws Exception {
-        System.out.println("\n[INTEGRATION TEST] testSendPurchase (ISO93) - Sending purchase transaction...");
-
-        ISOMsg request = ISO93ClientApp.createPurchaseMsg();
-        channel.send(request);
-        ISOMsg response = channel.receive();
-        assertNotNull(response);
-
-        assertNotNull(request, "Purchase transaction should return original message");
-        assertEquals("1100", request.getMTI());
-        System.out.println("  ✓ Purchase transaction completed successfully\n");
+    void testSendPurchase() {
+        try {
+            System.out.println("\n[INTEGRATION TEST] testSendPurchase (ISO93) - Sending purchase transaction...");
+            ISOMsg response = ISO93ClientApp.sendPurchase(channel);
+            assertNotNull(response);
+            assertEquals("00", response.getString(39));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Exception: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testSendPurchaseReversal() throws Exception {
-        System.out.println("\n[INTEGRATION TEST] testSendPurchaseReversal (ISO93) - Sending purchase reversal...");
-
-        ISOMsg original = ISO93ClientApp.createPurchaseMsg();
-        ISOMsg request = ISO93ClientApp.createPurchaseReversalMsg(original);
-        channel.send(request);
-        ISOMsg response = channel.receive();
-        assertNotNull(response);
-
-        System.out.println("  ✓ Purchase Reversal transaction completed successfully\n");
+    void testSendPurchaseReversal() {
+        try {
+            System.out.println("\n[INTEGRATION TEST] testSendPurchaseReversal (ISO93) - Sending purchase reversal...");
+            ISOMsg response = ISO93ClientApp.sendPurchaseReversal(channel);
+            assertNotNull(response);
+            assertEquals("00", response.getString(39));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Exception: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testSendBalanceInquiry() throws Exception {
-        System.out.println("\n[INTEGRATION TEST] testSendBalanceInquiry (ISO93) - Sending balance inquiry...");
-
-        ISOMsg request = ISO93ClientApp.createBalanceInquiryMsg();
-        channel.send(request);
-        ISOMsg response = channel.receive();
-        assertNotNull(response);
-
-        System.out.println("  ✓ Balance Inquiry transaction completed successfully\n");
+    void testSendBalanceInquiry() {
+        try {
+            System.out.println("\n[INTEGRATION TEST] testSendBalanceInquiry (ISO93) - Sending balance inquiry...");
+            ISOMsg response = ISO93ClientApp.sendBalanceInquiry(channel);
+            assertNotNull(response);
+            assertEquals("00", response.getString(39));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Exception: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testSendWithdrawal() throws Exception {
-        System.out.println("\n[INTEGRATION TEST] testSendWithdrawal (ISO93) - Sending withdrawal transaction...");
-
-        ISOMsg request = ISO93ClientApp.createWithdrawalMsg();
-        channel.send(request);
-        ISOMsg response = channel.receive();
-        assertNotNull(response);
-
-        assertNotNull(request, "Withdrawal transaction should return original message");
-        assertEquals("1100", request.getMTI());
-        System.out.println("  ✓ Withdrawal transaction completed successfully\n");
+    void testSendWithdrawal() {
+        try {
+            System.out.println("\n[INTEGRATION TEST] testSendWithdrawal (ISO93) - Sending withdrawal...");
+            ISOMsg response = ISO93ClientApp.sendWithdrawal(channel);
+            assertNotNull(response);
+            assertEquals("00", response.getString(39));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Exception: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testSendWithdrawalReversal() throws Exception {
-        System.out.println("\n[INTEGRATION TEST] testSendWithdrawalReversal (ISO93) - Sending withdrawal reversal...");
-
-        ISOMsg original = ISO93ClientApp.createWithdrawalMsg();
-        ISOMsg request = ISO93ClientApp.createPurchaseReversalMsg(original);
-        channel.send(request);
-        ISOMsg response = channel.receive();
-        assertNotNull(response);
-
-        System.out.println("  ✓ Withdrawal Reversal transaction completed successfully\n");
+    void testSendWithdrawalReversal() {
+        try {
+            System.out.println(
+                    "\n[INTEGRATION TEST] testSendWithdrawalReversal (ISO93) - Sending withdrawal reversal...");
+            ISOMsg response = ISO93ClientApp.sendWithdrawalReversal(channel);
+            assertNotNull(response);
+            assertEquals("00", response.getString(39));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Exception: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testSendRefund() throws Exception {
-        System.out.println("\n[INTEGRATION TEST] testSendRefund (ISO93) - Sending refund transaction...");
-
-        ISOMsg request = ISO93ClientApp.createRefundMsg();
-        channel.send(request);
-        ISOMsg response = channel.receive();
-        assertNotNull(response);
-
-        System.out.println("  ✓ Refund transaction completed successfully\n");
+    void testSendRefund() {
+        try {
+            System.out.println("\n[INTEGRATION TEST] testSendRefund (ISO93) - Sending refund...");
+            ISOMsg response = ISO93ClientApp.sendRefund(channel);
+            assertNotNull(response);
+            assertEquals("00", response.getString(39));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Exception: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testSendPreAuth() throws Exception {
-        System.out.println("\n[INTEGRATION TEST] testSendPreAuth (ISO93) - Sending pre-authorization...");
-
-        ISOMsg request = ISO93ClientApp.createPreAuthMsg();
-        channel.send(request);
-        ISOMsg response = channel.receive();
-        assertNotNull(response);
-
-        System.out.println("  ✓ Pre-Auth transaction completed successfully\n");
+    void testSendPreAuth() {
+        try {
+            System.out.println("\n[INTEGRATION TEST] testSendPreAuth (ISO93) - Sending pre-auth...");
+            ISOMsg response = ISO93ClientApp.sendPreAuth(channel);
+            assertNotNull(response);
+            assertEquals("00", response.getString(39));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Exception: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testSendCreateCard() throws Exception {
-        System.out.println("\n[INTEGRATION TEST] testSendCreateCard (ISO93) - Sending card creation request...");
-
-        ISOMsg request = ISO93ClientApp.createCreateCardMsg();
-        channel.send(request);
-        ISOMsg response = channel.receive();
-        assertNotNull(response);
-
-        System.out.println("  ✓ Create Card transaction completed successfully\n");
+    void testSendCreateCard() {
+        try {
+            System.out.println("\n[INTEGRATION TEST] testSendCreateCard (ISO93) - Sending card creation request...");
+            ISOMsg response = ISO93ClientApp.sendCreateCard(channel);
+            assertNotNull(response);
+            assertEquals("00", response.getString(39));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Exception: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testSendUpdateCardStatus() throws Exception {
-        System.out.println("\n[INTEGRATION TEST] testSendUpdateCardStatus (ISO93) - Sending card status update...");
+    void testSendUpdateCardStatus() {
+        try {
+            System.out.println("\n[INTEGRATION TEST] testSendUpdateCardStatus (ISO93) - Sending card status update...");
+            ISOMsg response = ISO93ClientApp.sendUpdateCardStatus(channel);
+            assertNotNull(response);
+            assertEquals("00", response.getString(39));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Exception: " + e.getMessage());
+        }
+    }
 
-        ISOMsg request = ISO93ClientApp.createCreateCardMsg(); // Reuse for demo
-        channel.send(request);
-        ISOMsg response = channel.receive();
-        assertNotNull(response);
-
-        System.out.println("  ✓ Update Card Status transaction completed successfully\n");
+    @Test
+    void testGenerateAndSyncCard() {
+        try {
+            System.out.println(
+                    "\n[INTEGRATION TEST] testGenerateAndSyncCard (ISO93) - Generating and syncing new card...");
+            ISOMsg response = ISO93ClientApp.generateAndSyncCard(channel);
+            assertNotNull(response);
+            assertEquals("00", response.getString(39));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Exception: " + e.getMessage());
+        }
     }
 }

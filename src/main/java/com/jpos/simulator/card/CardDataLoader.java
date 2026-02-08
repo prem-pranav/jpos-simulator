@@ -35,6 +35,7 @@ public class CardDataLoader {
             sb.append(card.getExpiry()).append(",");
             sb.append(card.getPin()).append(",");
             sb.append(card.getPvv()).append(",");
+            sb.append(card.getCvd()).append(",");
             sb.append(card.getStatus()).append(",");
             sb.append(card.getProduct()).append(",");
             sb.append(card.getScheme()).append(",");
@@ -52,7 +53,7 @@ public class CardDataLoader {
         List<CardInfo> cards = loadCards(csvPath);
         try (java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.FileWriter(csvPath))) {
             pw.println(
-                    "PREFIX,PAN_LENGTH,PAN,EXPIRY,PIN,PVV,STATUS,PRODUCT,SCHEME,PER_TXN_LIMIT,DAILY_LIMIT,SOURCE_ID,SELECTED");
+                    "PREFIX,PAN_LENGTH,PAN,EXPIRY,PIN,PVV,CVD,STATUS,PRODUCT,SCHEME,PER_TXN_LIMIT,DAILY_LIMIT,SOURCE_ID,SELECTED");
             for (CardInfo card : cards) {
                 StringBuilder sb = new StringBuilder();
                 sb.append(card.getPrefix()).append(",");
@@ -61,6 +62,7 @@ public class CardDataLoader {
                 sb.append(card.getExpiry()).append(",");
                 sb.append(card.getPin()).append(",");
                 sb.append(card.getPvv()).append(",");
+                sb.append(card.getCvd()).append(",");
                 sb.append(card.getStatus()).append(",");
                 sb.append(card.getProduct()).append(",");
                 sb.append(card.getScheme()).append(",");
@@ -87,29 +89,49 @@ public class CardDataLoader {
         }
 
         if (found) {
-            try (java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.FileWriter(csvPath))) {
-                pw.println(
-                        "PREFIX,PAN_LENGTH,PAN,EXPIRY,PIN,PVV,STATUS,PRODUCT,SCHEME,PER_TXN_LIMIT,DAILY_LIMIT,SOURCE_ID,SELECTED");
-                for (CardInfo card : cards) {
-                    StringBuilder sb = new StringBuilder();
-                    sb.append(card.getPrefix()).append(",");
-                    sb.append(card.getPanLength()).append(",");
-                    sb.append(card.getPan()).append(",");
-                    sb.append(card.getExpiry()).append(",");
-                    sb.append(card.getPin()).append(",");
-                    sb.append(card.getPvv()).append(",");
-                    sb.append(card.getStatus()).append(",");
-                    sb.append(card.getProduct()).append(",");
-                    sb.append(card.getScheme()).append(",");
-                    sb.append(card.getPerTxLimit()).append(",");
-                    sb.append(card.getDailyLimit()).append(",");
-                    sb.append(card.getSourceId()).append(",");
-                    sb.append(card.isSelected() ? "Y" : "N");
-                    pw.println(sb.toString());
-                }
-            } catch (IOException e) {
-                System.err.println("Error updating card status in " + csvPath + ": " + e.getMessage());
+            saveCards(csvPath, cards);
+        }
+    }
+
+    public static void updateCardPinData(String csvPath, String pan, String pvv) {
+        List<CardInfo> cards = loadCards(csvPath);
+        boolean found = false;
+        for (CardInfo card : cards) {
+            if (card.getPan().equals(pan)) {
+                card.setPvv(pvv);
+                found = true;
+                break;
             }
+        }
+        if (found) {
+            saveCards(csvPath, cards);
+        }
+    }
+
+    private static void saveCards(String csvPath, List<CardInfo> cards) {
+        try (java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.FileWriter(csvPath))) {
+            pw.println(
+                    "PREFIX,PAN_LENGTH,PAN,EXPIRY,PIN,PVV,CVD,STATUS,PRODUCT,SCHEME,PER_TXN_LIMIT,DAILY_LIMIT,SOURCE_ID,SELECTED");
+            for (CardInfo card : cards) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(card.getPrefix()).append(",");
+                sb.append(card.getPanLength()).append(",");
+                sb.append(card.getPan()).append(",");
+                sb.append(card.getExpiry()).append(",");
+                sb.append(card.getPin()).append(",");
+                sb.append(card.getPvv()).append(",");
+                sb.append(card.getCvd()).append(",");
+                sb.append(card.getStatus()).append(",");
+                sb.append(card.getProduct()).append(",");
+                sb.append(card.getScheme()).append(",");
+                sb.append(card.getPerTxLimit()).append(",");
+                sb.append(card.getDailyLimit()).append(",");
+                sb.append(card.getSourceId()).append(",");
+                sb.append(card.isSelected() ? "Y" : "N");
+                pw.println(sb.toString());
+            }
+        } catch (IOException e) {
+            System.err.println("Error saving cards to " + csvPath + ": " + e.getMessage());
         }
     }
 }

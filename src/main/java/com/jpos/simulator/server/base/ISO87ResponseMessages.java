@@ -55,4 +55,5 @@ public class ISO87ResponseMessages {
             response.set(101, m.getString(101));
         return response;
     }
+
 }

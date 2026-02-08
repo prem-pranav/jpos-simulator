@@ -7,7 +7,6 @@ import com.jpos.simulator.card.CardInfo;
 import com.jpos.simulator.card.CardDataLoader;
 import com.jpos.simulator.card.CardGenerator;
 
-import org.jpos.iso.ISODate;
 import org.jpos.iso.ISOException;
 import org.jpos.iso.ISOChannel;
 import org.jpos.iso.ISOMsg;
@@ -15,13 +14,16 @@ import org.jpos.util.Logger;
 import org.jpos.util.SimpleLogListener;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.Scanner;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.jpos.simulator.security.HsmSimulator;
+
 public class ISO87ClientApp extends ISO87Messages {
+    private static final HsmSimulator hsm = new HsmSimulator();
+
     public static void main(String[] args) {
         try {
             Logger logger = new Logger();
@@ -47,6 +49,11 @@ public class ISO87ClientApp extends ISO87Messages {
             menu.put("Send Logoff Request (0800/002)", ISO87ClientApp::sendLogoff);
             menu.put("Send Key Exchange (0800/161)", ISO87ClientApp::sendKeyExchange);
 
+            // File Action
+            menu.put("Send Create Card (0300/1)", ISO87ClientApp::sendCreateCard);
+            menu.put("Send Update Card Status (0300/2)", ISO87ClientApp::sendUpdateCardStatus);
+            menu.put("Generate & Sync New Card (0300)", ISO87ClientApp::generateAndSyncCard);
+
             // Financial
             menu.put("Send Pre-Authorization (0100)", ISO87ClientApp::sendPreAuth);
             menu.put("Send Balance Inquiry (0200/31)", ISO87ClientApp::sendBalanceInquiry);
@@ -55,11 +62,6 @@ public class ISO87ClientApp extends ISO87Messages {
             menu.put("Send Withdrawal (0200/01)", ISO87ClientApp::sendWithdrawal);
             menu.put("Send Withdrawal Reversal (0420/01)", ISO87ClientApp::sendWithdrawalReversal);
             menu.put("Send Refund (0200/20)", ISO87ClientApp::sendRefund);
-
-            // File Action
-            menu.put("Send Create Card (0300/1)", ISO87ClientApp::sendCreateCard);
-            menu.put("Send Update Card Status (0300/2)", ISO87ClientApp::sendUpdateCardStatus);
-            menu.put("Generate & Sync New Card (0300)", ISO87ClientApp::generateAndSyncCard);
 
             try (Scanner scanner = new Scanner(System.in)) {
                 boolean running = true;
@@ -109,13 +111,24 @@ public class ISO87ClientApp extends ISO87Messages {
     }
 
     // Helper for transmission
-    private static void transmit(ISOChannel channel, ISOMsg m, String name) throws ISOException, IOException {
+    private static ISOMsg transmit(ISOChannel channel, ISOMsg m, String name) throws ISOException, IOException {
         System.out.println("Sending " + name + " [" + m.getMTI() + "]...");
 
         channel.send(m);
         ISOMsg r = channel.receive();
 
         System.out.println("Received " + name + " response [" + r.getMTI() + "] (F39=" + r.getString(39) + ")");
+        return r;
+    }
+
+    // PIN / PVV helpers
+    private static void addSecurityFields(ISOMsg m, CardInfo card) throws org.jpos.iso.ISOException {
+        if (card != null) {
+            byte[] pinBlock = hsm.generateISO0PinBlock(card.getPin(), card.getPan());
+            m.set(52, pinBlock);
+            m.set(44, card.getPvv());
+            m.set(48, "CVV=" + card.getCvd());
+        }
     }
 
     // Network Management Methods
@@ -123,42 +136,24 @@ public class ISO87ClientApp extends ISO87Messages {
         return createNetMgmtBase("301");
     }
 
-    public static void sendEcho(ISOChannel channel) throws ISOException, IOException {
-        transmit(channel, createEchoMsg(), "Echo");
+    public static ISOMsg sendEcho(ISOChannel channel) throws ISOException, IOException {
+        return transmit(channel, createEchoMsg(), "Echo");
     }
 
     public static ISOMsg createLogonMsg() throws ISOException {
         return createNetMgmtBase("001");
     }
 
-    public static void sendLogon(ISOChannel channel) throws ISOException, IOException {
-        transmit(channel, createLogonMsg(), "Logon");
+    public static ISOMsg sendLogon(ISOChannel channel) throws ISOException, IOException {
+        return transmit(channel, createLogonMsg(), "Logon");
     }
 
     public static ISOMsg createLogoffMsg() throws ISOException {
         return createNetMgmtBase("002");
     }
 
-    public static void sendLogoff(ISOChannel channel) throws ISOException, IOException {
-        transmit(channel, createLogoffMsg(), "Logoff");
-    }
-
-    // Financial Methods
-    private static String getFirstCardPan() {
-        try {
-            java.util.List<CardInfo> cards = CardDataLoader.loadCards("src/main/resources/data/cards.csv");
-            for (CardInfo card : cards) {
-                if (card.isSelected()) {
-                    return card.getPan();
-                }
-            }
-            if (!cards.isEmpty()) {
-                return cards.get(0).getPan();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return "1234567890123456"; // Fallback
+    public static ISOMsg sendLogoff(ISOChannel channel) throws ISOException, IOException {
+        return transmit(channel, createLogoffMsg(), "Logoff");
     }
 
     private static CardInfo ensureCardSelectedInfo() {
@@ -171,22 +166,19 @@ public class ISO87ClientApp extends ISO87Messages {
         return !cards.isEmpty() ? cards.get(0) : null;
     }
 
-    private static String ensureCardSelected() {
-        CardInfo card = ensureCardSelectedInfo();
-        return card != null ? card.getPan() : "1234567890123456";
-    }
-
     public static ISOMsg createPurchaseMsg() throws ISOException {
-        String pan = ensureCardSelected();
-        ISOMsg m = createFinancialBase("0200", "000000", pan);
+        CardInfo card = ensureCardSelectedInfo();
+        String pan = card != null ? card.getPan() : "1234567890123456";
+        String expiry = card != null ? card.getExpiry() : "2912";
+        ISOMsg m = createFinancialBase("0200", "000000", pan, expiry);
         m.set(4, "000000001000"); // 10.00
+        addSecurityFields(m, card);
         return m;
     }
 
     public static ISOMsg sendPurchase(ISOChannel channel) throws ISOException, IOException {
         ISOMsg m = createPurchaseMsg();
-        transmit(channel, m, "Purchase");
-        return m;
+        return transmit(channel, m, "Purchase");
     }
 
     public static ISOMsg createPurchaseReversalMsg(ISOMsg original) throws ISOException {
@@ -195,31 +187,37 @@ public class ISO87ClientApp extends ISO87Messages {
         return createReversalBase("0420", "000000", pan, original.getString(4), rrn, original);
     }
 
-    public static void sendPurchaseReversal(ISOChannel channel) throws ISOException, IOException {
+    public static ISOMsg sendPurchaseReversal(ISOChannel channel) throws ISOException, IOException {
         ISOMsg original = sendPurchase(channel);
-        transmit(channel, createPurchaseReversalMsg(original), "Purchase Reversal");
+        return transmit(channel, createPurchaseReversalMsg(original), "Purchase Reversal");
     }
 
     public static ISOMsg createBalanceInquiryMsg() throws ISOException {
-        String pan = ensureCardSelected();
-        return createFinancialBase("0200", "310000", pan);
+        CardInfo card = ensureCardSelectedInfo();
+        String pan = card != null ? card.getPan() : "1234567890123456";
+        String expiry = card != null ? card.getExpiry() : "2912";
+        ISOMsg m = createFinancialBase("0200", "310000", pan, expiry);
+        addSecurityFields(m, card);
+        return m;
     }
 
-    public static void sendBalanceInquiry(ISOChannel channel) throws ISOException, IOException {
-        transmit(channel, createBalanceInquiryMsg(), "Balance Inquiry");
+    public static ISOMsg sendBalanceInquiry(ISOChannel channel) throws ISOException, IOException {
+        return transmit(channel, createBalanceInquiryMsg(), "Balance Inquiry");
     }
 
     public static ISOMsg createWithdrawalMsg() throws ISOException {
-        String pan = ensureCardSelected();
-        ISOMsg m = createFinancialBase("0200", "010000", pan);
+        CardInfo card = ensureCardSelectedInfo();
+        String pan = card != null ? card.getPan() : "1234567890123456";
+        String expiry = card != null ? card.getExpiry() : "2912";
+        ISOMsg m = createFinancialBase("0200", "010000", pan, expiry);
         m.set(4, "000000002000"); // 20.00
+        addSecurityFields(m, card);
         return m;
     }
 
     public static ISOMsg sendWithdrawal(ISOChannel channel) throws ISOException, IOException {
         ISOMsg m = createWithdrawalMsg();
-        transmit(channel, m, "Withdrawal");
-        return m;
+        return transmit(channel, m, "Withdrawal");
     }
 
     public static ISOMsg createWithdrawalReversalMsg(ISOMsg original) throws ISOException {
@@ -228,31 +226,37 @@ public class ISO87ClientApp extends ISO87Messages {
         return createReversalBase("0420", "010000", pan, original.getString(4), rrn, original);
     }
 
-    public static void sendWithdrawalReversal(ISOChannel channel) throws ISOException, IOException {
+    public static ISOMsg sendWithdrawalReversal(ISOChannel channel) throws ISOException, IOException {
         ISOMsg original = sendWithdrawal(channel);
-        transmit(channel, createWithdrawalReversalMsg(original), "Withdrawal Reversal");
+        return transmit(channel, createWithdrawalReversalMsg(original), "Withdrawal Reversal");
     }
 
     public static ISOMsg createRefundMsg() throws ISOException {
-        String pan = ensureCardSelected();
-        ISOMsg m = createFinancialBase("0200", "200000", pan);
+        CardInfo card = ensureCardSelectedInfo();
+        String pan = card != null ? card.getPan() : "1234567890123456";
+        String expiry = card != null ? card.getExpiry() : "2912";
+        ISOMsg m = createFinancialBase("0200", "200000", pan, expiry);
         m.set(4, "000000001500"); // 15.00
+        addSecurityFields(m, card);
         return m;
     }
 
-    public static void sendRefund(ISOChannel channel) throws ISOException, IOException {
-        transmit(channel, createRefundMsg(), "Refund");
+    public static ISOMsg sendRefund(ISOChannel channel) throws ISOException, IOException {
+        return transmit(channel, createRefundMsg(), "Refund");
     }
 
     public static ISOMsg createPreAuthMsg() throws ISOException {
-        String pan = ensureCardSelected();
-        ISOMsg m = createFinancialBase("0100", "000000", pan);
+        CardInfo card = ensureCardSelectedInfo();
+        String pan = card != null ? card.getPan() : "1234567890123456";
+        String expiry = card != null ? card.getExpiry() : "2912";
+        ISOMsg m = createFinancialBase("0100", "000000", pan, expiry);
         m.set(4, "000000005000"); // 50.00
+        addSecurityFields(m, card);
         return m;
     }
 
-    public static void sendPreAuth(ISOChannel channel) throws ISOException, IOException {
-        transmit(channel, createPreAuthMsg(), "Pre-Auth");
+    public static ISOMsg sendPreAuth(ISOChannel channel) throws ISOException, IOException {
+        return transmit(channel, createPreAuthMsg(), "Pre-Auth");
     }
 
     public static ISOMsg createKeyExchangeMsg() throws ISOException {
@@ -261,8 +265,8 @@ public class ISO87ClientApp extends ISO87Messages {
         return m;
     }
 
-    public static void sendKeyExchange(ISOChannel channel) throws ISOException, IOException {
-        transmit(channel, createKeyExchangeMsg(), "Key Exchange");
+    public static ISOMsg sendKeyExchange(ISOChannel channel) throws ISOException, IOException {
+        return transmit(channel, createKeyExchangeMsg(), "Key Exchange");
     }
 
     public static ISOMsg createCreateCardMsg() throws ISOException {
@@ -274,8 +278,8 @@ public class ISO87ClientApp extends ISO87Messages {
         return m;
     }
 
-    public static void sendCreateCard(ISOChannel channel) throws ISOException, IOException {
-        transmit(channel, createCreateCardMsg(), "Create Card");
+    public static ISOMsg sendCreateCard(ISOChannel channel) throws ISOException, IOException {
+        return transmit(channel, createCreateCardMsg(), "Create Card");
     }
 
     public static ISOMsg createUpdateCardStatusMsg() throws ISOException {
@@ -286,9 +290,9 @@ public class ISO87ClientApp extends ISO87Messages {
         return m;
     }
 
-    public static void sendUpdateCardStatus(ISOChannel channel) throws ISOException, IOException {
+    public static ISOMsg sendUpdateCardStatus(ISOChannel channel) throws ISOException, IOException {
         ISOMsg m = createUpdateCardStatusMsg();
-        transmit(channel, m, "Update Card Status");
+        ISOMsg r = transmit(channel, m, "Update Card Status");
 
         // Persist change to CSV
         CardInfo card = ensureCardSelectedInfo();
@@ -296,6 +300,7 @@ public class ISO87ClientApp extends ISO87Messages {
             System.out.println("Updating card status to BLOCKED in CSV...");
             CardDataLoader.updateCardStatus("src/main/resources/data/cards.csv", card.getPan(), "BLOCKED");
         }
+        return r;
     }
 
     public static ISOMsg createSyncCardMsg(CardInfo card) throws ISOException {
@@ -309,7 +314,7 @@ public class ISO87ClientApp extends ISO87Messages {
         return m;
     }
 
-    public static void generateAndSyncCard(ISOChannel channel) throws ISOException, IOException {
+    public static ISOMsg generateAndSyncCard(ISOChannel channel) throws ISOException, IOException {
         String csvPath = "src/main/resources/data/cards.csv";
         String prefix = "453211"; // Default VISA prefix
         int length = 16;
@@ -317,18 +322,11 @@ public class ISO87ClientApp extends ISO87Messages {
         CardInfo card = CardGenerator.generateCard(prefix, length);
         System.out.println("Generated New Card: " + card.toString());
 
-        transmit(channel, createSyncCardMsg(card), "Sync Generated Card");
+        ISOMsg r = transmit(channel, createSyncCardMsg(card), "Sync Generated Card");
 
         System.out.println("Saving generated card to CSV...");
         CardDataLoader.appendCard(csvPath, card);
+        return r;
     }
 
-    // Keep legacy names for existing tests
-    public static ISOMsg createNetworkManagementMsg() throws ISOException {
-        return createEchoMsg();
-    }
-
-    public static ISOMsg createFinancialTransactionMsg() throws ISOException {
-        return createPurchaseMsg();
-    }
 }
