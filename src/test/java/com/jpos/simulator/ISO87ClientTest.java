@@ -23,16 +23,17 @@ public class ISO87ClientTest {
 
     @BeforeAll
     static void setupChannel() throws Exception {
+        Logger logger = new Logger();
+        logger.addListener(new SimpleLogListener(System.out));
+
         if (isPortAvailable(8005)) {
             System.out.println("ISO87 Server not running. Starting it for integration tests...");
-            ISO87ServerApp.startServer();
+            ISO87ServerApp.startServer(logger);
             serverStartedByTest = true;
         }
 
         String configPath = "src/main/resources/xml/channel/iso87/client.xml";
         try {
-            Logger logger = new Logger();
-            logger.addListener(new SimpleLogListener(System.out));
 
             channel = ChannelFactory.createChannel(configPath);
             if (channel instanceof org.jpos.util.LogSource) {

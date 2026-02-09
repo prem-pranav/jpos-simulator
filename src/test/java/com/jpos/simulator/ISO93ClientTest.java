@@ -23,16 +23,17 @@ public class ISO93ClientTest {
 
     @BeforeAll
     static void setupChannel() throws Exception {
+        Logger logger = new Logger();
+        logger.addListener(new SimpleLogListener(System.out));
+
         if (isPortAvailable(8006)) {
             System.out.println("ISO93 Server not running. Starting it for integration tests...");
-            ISO93ServerApp.startServer();
+            ISO93ServerApp.startServer(logger);
             serverStartedByTest = true;
         }
 
         String configPath = "src/main/resources/xml/channel/iso93/client.xml";
         try {
-            Logger logger = new Logger();
-            logger.addListener(new SimpleLogListener(System.out));
 
             channel = ChannelFactory.createChannel(configPath);
             if (channel instanceof org.jpos.util.LogSource) {

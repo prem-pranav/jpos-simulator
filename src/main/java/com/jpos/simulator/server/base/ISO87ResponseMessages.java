@@ -12,20 +12,25 @@ public class ISO87ResponseMessages {
         response.setResponseMTI();
 
         // Echo back essential fields
+        if (m.hasField(3))
+            response.set(3, m.getString(3)); // Processing Code
+        if (m.hasField(4))
+            response.set(4, m.getString(4)); // Amount
         if (m.hasField(7))
             response.set(7, m.getString(7)); // Transmission Date & Time
         if (m.hasField(11))
             response.set(11, m.getString(11)); // STAN
+        if (m.hasField(37))
+            response.set(37, m.getString(37)); // Retrieval Reference Number
         if (m.hasField(41))
             response.set(41, m.getString(41)); // Terminal ID
         if (m.hasField(42))
             response.set(42, m.getString(42)); // Merchant ID
-        if (m.hasField(70))
-            response.set(70, m.getString(70)); // Network Management Information Code
-        if (m.hasField(37))
-            response.set(37, m.getString(37)); // Retrieval Reference Number
         if (m.hasField(49))
             response.set(49, m.getString(49)); // Currency Code
+        if (m.hasField(70))
+            response.set(70, m.getString(70)); // Network Management Information Code
+
         response.set(39, responseCode);
         return response;
     }

@@ -58,12 +58,22 @@ public class ISO93Messages {
     protected static ISOMsg createReversalBase(String mti, String procCode, String funcCode, String pan, String amount,
             String rrn, ISOMsg original) throws ISOException {
         ISOMsg m = createBase(mti);
+        Date now = new Date();
         m.set(2, pan);
         m.set(3, procCode);
         m.set(4, amount);
+        m.set(12, ISODate.getTime(now));
+        m.set(13, ISODate.getDate(now));
+        m.set(22, "021");
         m.set(24, funcCode);
+        m.set(25, "00");
         m.set(37, rrn);
+        if (original.hasField(38)) {
+            m.set(38, original.getString(38));
+        }
         m.set(41, "TERM0001");
+        m.set(42, "MERCHANT0000001");
+        m.set(49, "840");
 
         StringBuilder f90 = new StringBuilder();
         f90.append(original.getMTI());

@@ -181,15 +181,20 @@ public class ISO87ClientApp extends ISO87Messages {
         return transmit(channel, m, "Purchase");
     }
 
-    public static ISOMsg createPurchaseReversalMsg(ISOMsg original) throws ISOException {
-        String pan = original.getString(2);
-        String rrn = original.getString(37);
-        return createReversalBase("0420", "000000", pan, original.getString(4), rrn, original);
+    public static ISOMsg createPurchaseReversalMsg(ISOMsg request, ISOMsg response) throws ISOException {
+        String pan = request.getString(2);
+        String rrn = request.getString(37);
+        ISOMsg reversal = createReversalBase("0420", "000000", pan, request.getString(4), rrn, request);
+        if (response != null && response.hasField(38)) {
+            reversal.set(38, response.getString(38));
+        }
+        return reversal;
     }
 
     public static ISOMsg sendPurchaseReversal(ISOChannel channel) throws ISOException, IOException {
-        ISOMsg original = sendPurchase(channel);
-        return transmit(channel, createPurchaseReversalMsg(original), "Purchase Reversal");
+        ISOMsg request = createPurchaseMsg();
+        ISOMsg originalResponse = transmit(channel, request, "Purchase");
+        return transmit(channel, createPurchaseReversalMsg(request, originalResponse), "Purchase Reversal");
     }
 
     public static ISOMsg createBalanceInquiryMsg() throws ISOException {
@@ -220,15 +225,20 @@ public class ISO87ClientApp extends ISO87Messages {
         return transmit(channel, m, "Withdrawal");
     }
 
-    public static ISOMsg createWithdrawalReversalMsg(ISOMsg original) throws ISOException {
-        String pan = original.getString(2);
-        String rrn = original.getString(37);
-        return createReversalBase("0420", "010000", pan, original.getString(4), rrn, original);
+    public static ISOMsg createWithdrawalReversalMsg(ISOMsg request, ISOMsg response) throws ISOException {
+        String pan = request.getString(2);
+        String rrn = request.getString(37);
+        ISOMsg reversal = createReversalBase("0420", "010000", pan, request.getString(4), rrn, request);
+        if (response != null && response.hasField(38)) {
+            reversal.set(38, response.getString(38));
+        }
+        return reversal;
     }
 
     public static ISOMsg sendWithdrawalReversal(ISOChannel channel) throws ISOException, IOException {
-        ISOMsg original = sendWithdrawal(channel);
-        return transmit(channel, createWithdrawalReversalMsg(original), "Withdrawal Reversal");
+        ISOMsg request = createWithdrawalMsg();
+        ISOMsg originalResponse = transmit(channel, request, "Withdrawal");
+        return transmit(channel, createWithdrawalReversalMsg(request, originalResponse), "Withdrawal Reversal");
     }
 
     public static ISOMsg createRefundMsg() throws ISOException {

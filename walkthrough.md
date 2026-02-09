@@ -340,17 +340,26 @@ sequenceDiagram
 ### Request message
 **Reversal (Purchase Reversal) Request (0420)**
 ```xml
-<log realm="iso87-client-channel" at="2026-02-08T22:56:46.935886500">
+<log realm="iso87-client-channel" at="2026-02-09T12:00:14.185490900">
   <send>
     <isomsg direction="outgoing">
       <!-- org.jpos.iso.packager.GenericPackager -->
       <field id="0" value="0420"/>
+      <field id="2" value="5412340358517705"/>
       <field id="3" value="000000"/>
-      <field id="7" value="0208225646"/>
-      <field id="11" value="466357"/>
-      <field id="37" value="039221349321"/>
+      <field id="4" value="000000001000"/>
+      <field id="7" value="0209120014"/>
+      <field id="11" value="713978"/>
+      <field id="12" value="120014"/>
+      <field id="13" value="0209"/>
+      <field id="22" value="021"/>
+      <field id="25" value="00"/>
+      <field id="37" value="040122813921"/>
+      <field id="38" value="881528"/>
       <field id="41" value="TERM0001"/>
-      <field id="90" value="021013493202082256460000000000000000000000"/>
+      <field id="42" value="MERCHANT0000001"/>
+      <field id="49" value="840"/>
+      <field id="90" value="020028139202091200141234560000000000000000"/>
     </isomsg>
   </send>
 </log>
@@ -359,16 +368,20 @@ sequenceDiagram
 #### Response message
 **Reversal (Purchase Reversal) Response (0430)**
 ```xml
-<log realm="iso87-client-channel" at="2026-02-08T22:56:46.936886100">
+<log realm="iso87-client-channel" at="2026-02-09T12:00:14.188568300">
   <receive>
     <isomsg direction="incoming">
       <!-- org.jpos.iso.packager.GenericPackager -->
       <field id="0" value="0430"/>
-      <field id="7" value="0208225646"/>
-      <field id="11" value="466357"/>
-      <field id="37" value="039221349321"/>
+      <field id="3" value="000000"/>
+      <field id="4" value="000000001000"/>
+      <field id="7" value="0209120014"/>
+      <field id="11" value="713978"/>
+      <field id="37" value="040122813921"/>
       <field id="39" value="00"/>
       <field id="41" value="TERM0001"/>
+      <field id="42" value="MERCHANT0000001"/>
+      <field id="49" value="840"/>
     </isomsg>
   </receive>
 </log>

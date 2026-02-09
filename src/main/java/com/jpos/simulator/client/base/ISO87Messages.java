@@ -58,11 +58,21 @@ public class ISO87Messages {
     protected static ISOMsg createReversalBase(String mti, String procCode, String pan, String amount, String rrn,
             ISOMsg original) throws ISOException {
         ISOMsg m = createBase(mti);
+        Date now = new Date();
         m.set(2, pan);
         m.set(3, procCode);
         m.set(4, amount);
+        m.set(12, ISODate.getTime(now));
+        m.set(13, ISODate.getDate(now));
+        m.set(22, "021");
+        m.set(25, "00");
         m.set(37, rrn);
+        if (original.hasField(38)) {
+            m.set(38, original.getString(38));
+        }
         m.set(41, "TERM0001");
+        m.set(42, "MERCHANT0000001");
+        m.set(49, "840");
 
         // F90: Original Data Elements (Original MTI + Original STAN + Original Trans DT
         // + Original Acq ID + Original Fwd ID)

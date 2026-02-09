@@ -211,15 +211,20 @@ public class ISO93ClientApp extends ISO93Messages {
         return transmit(channel, m, "Purchase");
     }
 
-    public static ISOMsg createPurchaseReversalMsg(ISOMsg original) throws ISOException {
-        String pan = original.getString(2);
-        String rrn = original.getString(37);
-        return createReversalBase("1420", "000000", "400", pan, original.getString(4), rrn, original);
+    public static ISOMsg createPurchaseReversalMsg(ISOMsg request, ISOMsg response) throws ISOException {
+        String pan = request.getString(2);
+        String rrn = request.getString(37);
+        ISOMsg reversal = createReversalBase("1420", "000000", "400", pan, request.getString(4), rrn, request);
+        if (response != null && response.hasField(38)) {
+            reversal.set(38, response.getString(38));
+        }
+        return reversal;
     }
 
     public static ISOMsg sendPurchaseReversal(ISOChannel channel) throws ISOException, IOException {
-        ISOMsg original = sendPurchase(channel);
-        return transmit(channel, createPurchaseReversalMsg(original), "Purchase Reversal");
+        ISOMsg req = createPurchaseMsg();
+        ISOMsg originalResponse = transmit(channel, req, "Purchase");
+        return transmit(channel, createPurchaseReversalMsg(req, originalResponse), "Purchase Reversal");
     }
 
     public static ISOMsg createBalanceInquiryMsg() throws ISOException {
@@ -250,15 +255,20 @@ public class ISO93ClientApp extends ISO93Messages {
         return transmit(channel, m, "Withdrawal");
     }
 
-    public static ISOMsg createWithdrawalReversalMsg(ISOMsg original) throws ISOException {
-        String pan = original.getString(2);
-        String rrn = original.getString(37);
-        return createReversalBase("1420", "010000", "400", pan, original.getString(4), rrn, original);
+    public static ISOMsg createWithdrawalReversalMsg(ISOMsg request, ISOMsg response) throws ISOException {
+        String pan = request.getString(2);
+        String rrn = request.getString(37);
+        ISOMsg reversal = createReversalBase("1420", "010000", "400", pan, request.getString(4), rrn, request);
+        if (response != null && response.hasField(38)) {
+            reversal.set(38, response.getString(38));
+        }
+        return reversal;
     }
 
     public static ISOMsg sendWithdrawalReversal(ISOChannel channel) throws ISOException, IOException {
-        ISOMsg original = sendWithdrawal(channel);
-        return transmit(channel, createWithdrawalReversalMsg(original), "Withdrawal Reversal");
+        ISOMsg req = createWithdrawalMsg();
+        ISOMsg originalResponse = transmit(channel, req, "Withdrawal");
+        return transmit(channel, createWithdrawalReversalMsg(req, originalResponse), "Withdrawal Reversal");
     }
 
     public static ISOMsg createPreAuthMsg() throws ISOException {

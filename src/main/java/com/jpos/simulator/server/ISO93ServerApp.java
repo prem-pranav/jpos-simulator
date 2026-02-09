@@ -19,9 +19,16 @@ public class ISO93ServerApp {
     }
 
     public static void startServer() {
+        startServer(null);
+    }
+
+    public static void startServer(Logger sharedLogger) {
         try {
-            Logger logger = new Logger();
-            logger.addListener(new SimpleLogListener(System.out));
+            Logger logger = sharedLogger;
+            if (logger == null) {
+                logger = new Logger();
+                logger.addListener(new SimpleLogListener(System.out));
+            }
 
             File logDir = new File("log");
             if (!logDir.exists())
