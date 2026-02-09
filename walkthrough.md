@@ -338,7 +338,9 @@ sequenceDiagram
 | **ISO 93** | `1420` | `1430` | DE 90 | MTI, STAN, Date, Acq ID, Forward ID |
 
 ### Request message
-**Reversal (Purchase Reversal) Request (0420)**
+**Reversal (Purchase Reversal) Request**
+
+#### ISO 87 (0420)
 ```xml
 <log realm="iso87-client-channel" at="2026-02-09T12:00:14.185490900">
   <send>
@@ -365,8 +367,38 @@ sequenceDiagram
 </log>
 ```
 
+#### ISO 93 (1420)
+```xml
+<log realm="iso93-client-channel" at="2026-02-09T12:01:47.994869500">
+  <send>
+    <isomsg direction="outgoing">
+      <!-- org.jpos.iso.packager.GenericPackager -->
+      <field id="0" value="1420"/>
+      <field id="2" value="5412340358517705"/>
+      <field id="3" value="000000"/>
+      <field id="4" value="000000001000"/>
+      <field id="7" value="0209120147"/>
+      <field id="11" value="167690"/>
+      <field id="12" value="120147"/>
+      <field id="13" value="0209"/>
+      <field id="22" value="021"/>
+      <field id="24" value="400"/>
+      <field id="25" value="00"/>
+      <field id="37" value="040124931331"/>
+      <field id="38" value="074343"/>
+      <field id="41" value="TERM0001"/>
+      <field id="42" value="MERCHANT0000001"/>
+      <field id="49" value="840"/>
+      <field id="90" value="110049313302091201471234560000000000000000"/>
+    </isomsg>
+  </send>
+</log>
+```
+
 #### Response message
-**Reversal (Purchase Reversal) Response (0430)**
+**Reversal (Purchase Reversal) Response**
+
+#### ISO 87 (0430)
 ```xml
 <log realm="iso87-client-channel" at="2026-02-09T12:00:14.188568300">
   <receive>
@@ -378,6 +410,28 @@ sequenceDiagram
       <field id="7" value="0209120014"/>
       <field id="11" value="713978"/>
       <field id="37" value="040122813921"/>
+      <field id="39" value="00"/>
+      <field id="41" value="TERM0001"/>
+      <field id="42" value="MERCHANT0000001"/>
+      <field id="49" value="840"/>
+    </isomsg>
+  </receive>
+</log>
+```
+
+#### ISO 93 (1430)
+```xml
+<log realm="iso93-client-channel" at="2026-02-09T12:01:47.998249600">
+  <receive>
+    <isomsg direction="incoming">
+      <!-- org.jpos.iso.packager.GenericPackager -->
+      <field id="0" value="1430"/>
+      <field id="3" value="000000"/>
+      <field id="4" value="000000001000"/>
+      <field id="7" value="0209120147"/>
+      <field id="11" value="167690"/>
+      <field id="24" value="400"/>
+      <field id="37" value="040124931331"/>
       <field id="39" value="00"/>
       <field id="41" value="TERM0001"/>
       <field id="42" value="MERCHANT0000001"/>
