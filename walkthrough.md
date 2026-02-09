@@ -16,8 +16,9 @@ I have refactored the logging mechanism in both **ISO87** and **ISO93** suites t
 - **Automated Lifecycle**: Integration tests automatically manage the server lifecycle. The test suite checks for port availability and starts/stops the server as needed.
 
 ---
+## 🚀 Scenario-Based Testing
 
-## � Transaction Flow: Generate & Sync New Card
+### 🔄 Transaction Flow: Generate & Sync New Card
 
 This flow demonstrates the client's ability to generate a new card number, perform local validation, and synchronize it with the host.
 
@@ -47,7 +48,7 @@ sequenceDiagram
     C->>C: Log Success
 ```
 
-### Process Steps
+#### Process Steps
 
 1.  **Card Generation**:
     - The client generates a valid **PAN** (with Luhn check), **CVV**, and **PIN/PVV** using `CardGenerator`.
@@ -61,7 +62,7 @@ sequenceDiagram
     - **Field 91**: `1` (File Update / Add).
     - **Field 48**: Contains encoded card details (Scheme, Limits, BIN).
 
-### Request message
+#### Request message
 **File Action (Generate & Sync) Request (0300)**
 ```xml
 <log realm="iso87-client-channel" at="2026-02-09T10:21:18.209186500">
@@ -82,7 +83,7 @@ sequenceDiagram
 </log>
 ```
 
-### Response message
+#### Response message
 **File Action (Generate & Sync) Response (0310)**
 ```xml
 <log realm="iso87-client-channel" at="2026-02-09T10:21:18.212368100">
@@ -103,7 +104,7 @@ sequenceDiagram
 
 ---
 
-## �🔄 Transaction Flow: Network Management
+### 🔄 Transaction Flow: Network Management
 
 The following diagram illustrates the end-to-end communication flow for Network Management transactions (Echo, Logon, Logoff, Key Exchange) between the Client and Server.
 
@@ -125,14 +126,14 @@ sequenceDiagram
     C->>C: handleResponse(log & display)
 ```
 
-### Protocol Mapping (Net Mgmt)
+#### Protocol Mapping (Net Mgmt)
 
 | Protocol | Request MTI | Response MTI | Action Field | Field Reference |
 | :--- | :--- | :--- | :--- | :--- |
 | **ISO 87** | `0800` | `0810` | DE 70 | 301 (Echo), 001 (Logon), etc. |
 | **ISO 93** | `1804` | `1814` | DE 24 | 801 (Echo), 001 (Logon), etc. |
 
-### Request message
+#### Request message
 **Network Management (Echo) Request (0800)**
 ```xml
 <log realm="iso87-client-channel" at="2026-02-08T22:56:08.277035300">
@@ -148,7 +149,7 @@ sequenceDiagram
 </log>
 ```
 
-### Response message
+#### Response message
 **Network Management (Echo) Response (0810)**
 ```xml
 <log realm="iso87-client-channel" at="2026-02-08T22:56:08.278035900">
@@ -165,7 +166,7 @@ sequenceDiagram
 </log>
 ```
 
-## Transaction Flow: Financial Transactions
+### 🔄 Transaction Flow: Financial Transactions
 
 Financial transactions handle authorization and funds movement (Purchase, Withdrawal, Refund, etc.). Unlike Network Management, these check the **Processing Code (DE 3)** and **Function Code (DE 24)** for routing.
 
@@ -186,7 +187,7 @@ sequenceDiagram
     C->>C: Validate Response & Display
 ```
 
-### Protocol Mapping (Financial)
+#### Protocol Mapping (Financial)
 
 | Transaction | Protocol | Request MTI | Proc Code (DE 3) | Func Code (DE 24) |
 | :--- | :--- | :--- | :--- | :--- |
@@ -195,7 +196,7 @@ sequenceDiagram
 | **Withdrawal**| ISO 87 | `0200` | `010000` | N/A |
 | **Withdrawal**| ISO 93 | `1100` | `010000` | `100` |
 
-### Request message
+#### Request message
 **Financial (Purchase) Request (0200)**
 ```xml
 <log realm="iso87-client-channel" at="2026-02-08T22:56:46.931879800">
@@ -227,7 +228,7 @@ sequenceDiagram
 </log>
 ```
 
-### Response message
+#### Response message
 **Financial (Purchase) Response (0210)**
 ```xml
 <log realm="iso87-client-channel" at="2026-02-08T22:56:46.934886800">
@@ -248,7 +249,7 @@ sequenceDiagram
 </log>
 ```
 
-## 🔒 Transaction Flow: Card & PIN Verification
+### 🔒 Transaction Flow: Card & PIN Verification
 
 For financial interactions, the server performs security checks before authorizing the transaction. This includes **CVV Verification** and **PIN Verification**.
 
@@ -288,7 +289,7 @@ sequenceDiagram
     end
 ```
 
-### Verification Logic
+#### Verification Logic
 
 1.  **CVV Check (Card Verification)**:
     - Extracts `CVV` from **Field 48**.
@@ -302,7 +303,7 @@ sequenceDiagram
 
 ---
 
-## Transaction Flow: Reversal Messages
+### Transaction Flow: Reversal Messages
 
 Reversals are sent to undo a previous transaction that timed out or failed partially. They rely on **Original Data Elements (DE 90)** to link to the original transaction.
 
@@ -329,7 +330,7 @@ sequenceDiagram
     C->>C: handleResponse(log & display)
 ```
 
-### Protocol Mapping (Reversal)
+#### Protocol Mapping (Reversal)
 
 | Protocol | Request MTI | Response MTI | Key Field | Contents |
 | :--- | :--- | :--- | :--- | :--- |
@@ -355,7 +356,7 @@ sequenceDiagram
 </log>
 ```
 
-### Response message
+#### Response message
 **Reversal (Purchase Reversal) Response (0430)**
 ```xml
 <log realm="iso87-client-channel" at="2026-02-08T22:56:46.936886100">
@@ -373,28 +374,9 @@ sequenceDiagram
 </log>
 ```
 
-### Log File Persistence
+#### Log File Persistence
 - Client logs are persisted to `log/ISO87CLIENT.log` and `log/ISO93CLIENT.log`.
 - Logs are successfully persisted to `log/ISO87HOST.log` and `log/ISO93HOST.log` as well, capturing the server-side processing.
-
----
-
-## 🚀 Scenario-Based Testing
-
-### Scenario 1: Basic Connectivity (Echo)
-**Run**: `./gradlew runISO87Server` and `./gradlew runISO87Client`.
-**Action**: Select "Send Echo Request".
-**Verify**: Check logs for MTI `0810` with response code `00`.
-
-### Scenario 2: Automated Integration Testing
-**Run**: `./gradlew test --tests "com.jpos.simulator.ISO87ClientTest"`
-**Verify**: The suite automatically starts the server if down, executes all financial/net-mgmt flows, and validates responses programmatically.
-
----
-
-### Scenario 3: HSM PIN Generation
-**Run**: `./gradlew runHsmSim`
-**Verify**: The simulator generates a random 4-digit PIN for a given account number and displays the encrypted PIN block.
 
 ---
 
